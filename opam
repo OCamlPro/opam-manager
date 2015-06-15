@@ -1,0 +1,12 @@
+opam-version: "1.3"
+name: "opam-manager"
+version: "0.1~dev"
+maintainer: "Grégoire Henry <gregoire.henry@ocamlpro.com>"
+authors: "Grégoire Henry <gregoire.henry@ocamlpro.com>"
+build: [
+  [ "ocp-build" "init" ]
+  [ "ocp-build" ]
+]
+depends: [
+  "opam-lib" { >= "1.3" }
+]

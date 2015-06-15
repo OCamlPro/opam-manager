@@ -1,0 +1,34 @@
+
+begin library "opam-manager-core"
+
+  files = [
+    "managerVersion.ml"
+    "managerMisc.ml"
+    "managerPath.ml"
+    "managerTypes.mli"
+    "managerRoot.ml"
+    "managerFile.ml"
+    "managerSwitch.ml"
+    "managerDefault.ml"
+    "managerWrapper.ml"
+    "managerExec.ml"
+    "managerConfig.ml"
+  ]
+
+  requires = [
+    "opam-lib.state"
+  ]
+
+end
+
+begin program "opam-manager-wrapper"
+
+  files = [
+    "managerWrapperMain.ml"
+  ]
+
+  requires = [
+    "opam-manager-core"
+  ]
+
+end

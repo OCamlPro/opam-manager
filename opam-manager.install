@@ -1,0 +1,6 @@
+libexec: [
+   "_obuild/opam-manager-wrapper/opam-manager-wrapper.asm" { "opam-manager-wrapper" }
+]
+bin: [
+   "_obuild/opam-manager/opam-manager.asm" { "opam-manager" }
+]
