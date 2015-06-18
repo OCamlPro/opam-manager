@@ -8,5 +8,6 @@ build: [
   [ "ocp-build" ]
 ]
 depends: [
+  "ocp-build"
   "opam-lib" { >= "1.3" }
 ]
