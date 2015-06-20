@@ -60,8 +60,7 @@ module Config_base = struct
     s_known_roots;
   ]
 
-  let of_channel filename ic =
-    let s = OpamFile.Syntax.of_channel filename ic in
+  let of_syntax _ s =
     let _permissive = OpamFile.Syntax.check s valid_fields in
     let _manager_version =
       OpamFormat.assoc s.file_contents s_manager_version
@@ -79,6 +78,13 @@ module Config_base = struct
       known_roots;
       wrapper_binary;
     }
+
+
+  let of_channel filename ic =
+    of_syntax filename (OpamFile.Syntax.of_channel filename ic)
+
+  let of_string filename str =
+    of_syntax filename (OpamFile.Syntax.of_string filename str)
 
   let to_string filename t =
     let variables =

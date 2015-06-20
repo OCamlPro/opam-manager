@@ -248,9 +248,7 @@ let get_opam_env_state opam_switch =
       let state =
         match opam_switch.opam_switch with
         | None -> state
-        | Some switch ->
-            let compiler = OpamSwitch.Map.find switch state.aliases in
-            { state with switch; compiler } in
+        | Some switch -> OpamState.with_switch switch state in
       opam_switch.opam_env_state <- Some state;
       state
 
