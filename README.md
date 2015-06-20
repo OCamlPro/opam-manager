@@ -13,7 +13,7 @@ When no corresponding binary is found in the current switch Opam-manager may exe
 
 ```
 opam pin add opam-lib --dev-repo 
-opam pin add opam-manager https://github.com/hnrgrgr/opam-manager.git
+opam pin add opam-manager https://github.com/OCamlPro/opam-manager.git
 opam manager
 ```
 
