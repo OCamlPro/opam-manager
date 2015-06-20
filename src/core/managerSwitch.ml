@@ -185,12 +185,12 @@ let file_opam_switch config =
 (** Default switch *)
 
 let default_opam_switch config =
-  match
-    ManagerRoot.from_path config (OpamStateConfig.opamroot ()) with
+  match ManagerRoot.default config with
   | { root_name; root_kind = Opam_root opam_root } ->
       Opam_switch { opam_root_name = root_name; opam_root;
                     opam_switch = None; opam_env_state = None }
-
+  | exception ManagerRoot.Unknown_root_name (name, true) ->
+      fail "Invalid default OPAMROOT name (%s)" name
 
 (** Current switch:
 
