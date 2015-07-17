@@ -15,12 +15,13 @@
 
 open OpamTypes
 
+(** Root *)
+
 type opam_root = {
   opam_root_path: OpamPath.t;
-  (* Cache: *)
+  (* Parsed file cache: *)
   mutable opam_root_config: OpamFile.Config.t option;
-  mutable opam_root_env_state: OpamState.state option;
-  mutable opam_root_state: OpamState.state option;
+  mutable opam_root_aliases: OpamFile.Aliases.t option;
 }
 
 type root_kind =
@@ -31,18 +32,21 @@ type root = {
   root_kind: root_kind;
 }
 
+(** Switch *)
+
 type opam_switch = {
   opam_root_name: string;
   opam_root: opam_root;
-  opam_switch: OpamSwitch.t option; (* [None] means the default switch *)
-  (* Cache: *)
-  mutable opam_env_state: OpamState.state option;
+  opam_switch: OpamSwitch.t;
+  (* Parsed file cache: *)
+  mutable opam_switch_config: OpamFile.Dot_config.t option;
+  mutable opam_switch_comp: OpamFile.Comp.t option;
 }
 
 type switch =
   | Opam_switch of opam_switch
 
-(** Configuration files *)
+(** Opam-manager configuration file *)
 
 type config = {
   default_root_name: string;

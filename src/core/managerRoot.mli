@@ -21,12 +21,11 @@ val default: config -> root
 
 val from_path: ?anonymous:bool -> config -> OpamFilename.Dir.t -> root
 val from_name: config -> string -> root
-
-val get_opam_state: opam_root -> OpamState.state
-val get_opam_env_state: opam_root -> OpamState.state
-
 val switches: root -> switch list
-
 val equal: root -> root -> bool
 
 val create_opam_root: string -> OpamPath.t -> ManagerTypes.root
+
+val get_opam_root_config: opam_root -> OpamFile.Config.t
+val get_opam_root_aliases: opam_root -> OpamFile.Aliases.t
+val get_opam_default_switch: opam_root -> OpamSwitch.t

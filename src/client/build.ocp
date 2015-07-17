@@ -2,19 +2,7 @@
 begin program "opam-manager"
 
     files = [
-
       "managerMain.ml"
-      
-      (* "managerUpdater.ml" *)
-
-(*      "managerInitCmd.ml" *)
-(*      "managerRootCmd.ml" *)
-
-(*      "managerArgHelpers.ml" *)
-(*      "managerArg.ml" *)
-
-(*      "managerMain.ml" *)
-
     ]
 
     requires = [

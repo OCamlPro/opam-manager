@@ -17,7 +17,6 @@ open ManagerMisc
 
 let () =
   try
-    OpamStateConfig.init ~switch_from:`Command_line ();
     match ManagerConfig.load () with
     | None -> fail "can't read the configuration file!"
     | Some config -> ManagerExec.exec config Sys.argv

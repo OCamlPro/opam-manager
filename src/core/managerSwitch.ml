@@ -15,15 +15,9 @@
 
 open ManagerTypes
 open ManagerMisc
-open OpamState.Types
 
-let opam_switch_name opam_switch =
-  match opam_switch.opam_switch with
-  | Some name -> name
-  | None ->
-      (* Lookup for the default switch in OPAM state. *)
-      let state = ManagerRoot.get_opam_env_state opam_switch.opam_root in
-      state.switch
+(* FIXME GRGR *)
+let opam_switch_name opam_switch = opam_switch.opam_switch
 
 let name = function
   | Opam_switch opam_switch ->
@@ -41,23 +35,24 @@ let find_switch config ?default name =
       | { root_name; root_kind = Opam_root opam_root } ->
           let opam_switch =
             match name with
-            | "" -> None
-            | s -> Some (OpamSwitch.of_string s) in
+            | "" -> ManagerRoot.get_opam_default_switch opam_root
+            | s -> OpamSwitch.of_string s in
           Opam_switch
             { opam_root_name = root_name ; opam_root ;
-              opam_switch; opam_env_state = None ;
-            }
+              opam_switch ;
+              opam_switch_config = None ; opam_switch_comp = None; }
     end
   | Some (root, switch) -> begin
       match ManagerRoot.from_name config root with
       | { root_name; root_kind = Opam_root opam_root } ->
           let opam_switch =
             match switch with
-            | "" -> None
-            | s -> Some (OpamSwitch.of_string switch) in
+            | "" -> ManagerRoot.get_opam_default_switch opam_root
+            | s -> OpamSwitch.of_string switch in
           Opam_switch
-            { opam_root_name = root_name; opam_root;
-              opam_switch; opam_env_state = None  }
+            { opam_root_name = root_name ; opam_root ;
+              opam_switch ;
+              opam_switch_config = None ; opam_switch_comp = None }
     end
 
 (** Find switch selected in argv *)
@@ -108,10 +103,12 @@ let argv_opam_switch argv config =
   match argv_opamroot, argv_opamswitch with
   | None, None -> None
   | None, Some opam_switch -> Some (Opam_switch opam_switch, `Argv)
-  | Some (root, opam_root), (None as opam_switch) ->
+  | Some (root, opam_root), None ->
+      let opam_switch = ManagerRoot.get_opam_default_switch opam_root in
       Some (Opam_switch
-              { opam_root_name = root.root_name; opam_root;
-                opam_switch; opam_env_state = None },
+              { opam_root_name = root.root_name ; opam_root ;
+                opam_switch ;
+                opam_switch_config = None ; opam_switch_comp = None },
             `Argv)
   | Some (_, opam_root), (Some opam_switch) ->
       if opam_root.opam_root_path <> opam_switch.opam_root.opam_root_path then
@@ -138,10 +135,12 @@ let env_opam_switch config =
   match env_opamroot, env_opamswitch with
   | None, None -> None
   | None, Some opam_switch -> Some (Opam_switch opam_switch, `Env "OPAMSWITCH")
-  | Some (root, opam_root), (None as opam_switch) ->
+  | Some (root, opam_root), None ->
+      let opam_switch = ManagerRoot.get_opam_default_switch opam_root in
       Some (Opam_switch
-              { opam_root_name = root.root_name; opam_root;
-                opam_switch; opam_env_state = None },
+              { opam_root_name = root.root_name ; opam_root ;
+                opam_switch ;
+                opam_switch_config = None ; opam_switch_comp = None },
             `Env "OPAMROOT")
   | Some (_, opam_root), (Some opam_switch) ->
       if opam_root.opam_root_path <> opam_switch.opam_root.opam_root_path then
@@ -187,8 +186,10 @@ let file_opam_switch config =
 let default_opam_switch config =
   match ManagerRoot.default config with
   | { root_name; root_kind = Opam_root opam_root } ->
-      Opam_switch { opam_root_name = root_name; opam_root;
-                    opam_switch = None; opam_env_state = None }
+      let opam_switch = ManagerRoot.get_opam_default_switch opam_root in
+      Opam_switch { opam_root_name = root_name ; opam_root ;
+                    opam_switch ;
+                    opam_switch_config = None ; opam_switch_comp = None }
   | exception ManagerRoot.Unknown_root_name (name, true) ->
       fail "Invalid default OPAMROOT name (%s)" name
 
@@ -236,45 +237,134 @@ let setup_minimal_env = function
   | Opam_switch { opam_root; opam_switch } ->
       Unix.putenv "OPAMROOT"
         (OpamFilename.Dir.to_string opam_root.opam_root_path);
-      OpamStd.Option.iter
-        (fun switch -> Unix.putenv "OPAMSWITCH" (OpamSwitch.to_string switch))
-        opam_switch
+      Unix.putenv "OPAMSWITCH" (OpamSwitch.to_string opam_switch)
 
-let get_opam_env_state opam_switch =
-  match opam_switch.opam_env_state with
-  | Some state -> state
+let get_opam_compiler opam_switch =
+  let switch = opam_switch.opam_switch in
+  try
+    let aliases = ManagerRoot.get_opam_root_aliases opam_switch.opam_root in
+    Some (OpamSwitch.Map.find switch aliases)
+  with Not_found ->
+    None
+
+let get_opam_comp opam_switch =
+  match opam_switch.opam_switch_comp with
+  | Some comp -> comp
   | None ->
-      let state = ManagerRoot.get_opam_env_state opam_switch.opam_root in
-      let state =
-        match opam_switch.opam_switch with
-        | None -> state
-        | Some switch -> OpamState.with_switch switch state in
-      opam_switch.opam_env_state <- Some state;
-      state
+      let comp =
+        match get_opam_compiler opam_switch with
+        | None -> OpamSwitch.not_installed opam_switch.opam_switch
+        | Some comp ->
+            OpamFile.Comp.read
+              (OpamPath.compiler_comp opam_switch.opam_root.opam_root_path comp)
+      in
+      opam_switch.opam_switch_comp <- Some comp;
+      comp
 
 let is_valid = function
   | Opam_switch opam_switch ->
-      try ignore(get_opam_env_state opam_switch); true
+      try ignore(get_opam_comp opam_switch); true
       with Not_found -> false
+
+let get_opam_switch_config opam_switch =
+  match opam_switch.opam_switch_config with
+  | Some config -> config
+  | None ->
+      let f =
+        OpamPath.Switch.global_config
+          opam_switch.opam_root.opam_root_path opam_switch.opam_switch in
+      let config =
+        if OpamFilename.exists f then OpamFile.Dot_config.read f
+        else
+          (OpamConsole.error "No global config file found for switch %s. \
+                              Switch broken ?"
+             (OpamSwitch.to_string opam_switch.opam_switch);
+           OpamFile.Dot_config.empty) in
+      opam_switch.opam_switch_config <- Some config;
+      config
+
+let get_opam_env ?force_path opam_switch =
+
+  let open OpamState.Types in
+
+  let env_updates ?(force_path = false) opam_switch t =
+    let comp = get_opam_comp opam_switch in
+    let add_to_path = OpamPath.Switch.bin t.root t.switch t.switch_config in
+    let new_path =
+      "PATH",
+      (if force_path then "+=" else "=+="),
+      OpamFilename.Dir.to_string add_to_path in
+    let perl5 = OpamPackage.Name.of_string "perl5" in
+    let add_to_perl5lib =
+      OpamPath.Switch.lib t.root t.switch t.switch_config perl5 in
+    let new_perl5lib =
+      "PERL5LIB", "+=", OpamFilename.Dir.to_string add_to_perl5lib in
+    let toplevel_dir =
+      "OCAML_TOPLEVEL_PATH", "=",
+      OpamFilename.Dir.to_string
+        (OpamPath.Switch.toplevel t.root t.switch t.switch_config) in
+    let man_path =
+      let open OpamStd.Sys in
+      match os () with
+      | OpenBSD | NetBSD | FreeBSD ->
+          [] (* MANPATH is a global override on those, so disabled for now *)
+      | _ ->
+          ["MANPATH", "=:",
+           OpamFilename.Dir.to_string
+             (OpamPath.Switch.man_dir t.root t.switch t.switch_config)] in
+    let comp_env = OpamFile.Comp.env comp in
+    new_path :: toplevel_dir :: new_perl5lib ::
+    (man_path @ comp_env) in
+
+  let st =
+    let root = opam_switch.opam_root.opam_root_path in
+    let config = ManagerRoot.get_opam_root_config opam_switch.opam_root in
+    let aliases = ManagerRoot.get_opam_root_aliases opam_switch.opam_root in
+    let switch = opam_switch.opam_switch in
+    let compiler =
+      match get_opam_compiler opam_switch with
+      | Some comp -> comp
+      | None ->
+          OpamConsole.error_and_exit
+            "The current switch (%s) is an unknown compiler switch."
+            (OpamSwitch.to_string switch) in
+    let switch_config = get_opam_switch_config opam_switch in
+    { OpamState.Types.root; config; aliases; switch; compiler; switch_config;
+      partial = true;
+      compiler_version = lazy (OpamCompiler.Version.of_string "none");
+      opams = OpamPackage.Map.empty;
+      repositories = OpamRepositoryName.Map.empty;
+      packages = OpamPackage.Set.empty;
+      available_packages = lazy OpamPackage.Set.empty;
+      compilers = OpamCompiler.Set.empty;
+      pinned = OpamPackage.Name.Map.empty;
+      installed = OpamPackage.Set.empty;
+      installed_roots = OpamPackage.Set.empty;
+      reinstall = OpamPackage.Set.empty;
+      package_index = OpamPackage.Map.empty;
+      compiler_index = OpamCompiler.Map.empty;
+    } in
+
+  OpamState.add_to_env st [] (env_updates opam_switch st)
 
 let setup_env = function
   | Opam_switch opam_switch ->
-      let opam_state = get_opam_env_state opam_switch in
-      let env = OpamState.get_opam_env ~force_path:false opam_state in
+      let env = get_opam_env ~force_path:false opam_switch in
       List.iter (fun (n, v) -> Unix.putenv n v) env
-
 
 (** Various accessors *)
 
 let is_opam_system_switch = function
   | Opam_switch opam_switch ->
-      let opam_state = get_opam_env_state opam_switch in
-      opam_state.compiler = OpamCompiler.of_string "system"
+      match get_opam_compiler opam_switch with
+      | Some comp -> comp = OpamCompiler.of_string "system"
+      | None -> false
 
 let bin_dir = function
   | Opam_switch opam_switch ->
-      let switch_name = opam_switch_name opam_switch in
-      OpamPath.Switch.Default.bin opam_switch.opam_root.opam_root_path switch_name
+      let config = get_opam_switch_config opam_switch in
+      OpamPath.Switch.bin
+        opam_switch.opam_root.opam_root_path opam_switch.opam_switch config
 
 let all config =
   List.concat @@

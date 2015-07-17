@@ -15,46 +15,38 @@
 
 open ManagerTypes
 open ManagerMisc
-open OpamState.Types
 
 let get_opam_root_config opam_root =
   match opam_root.opam_root_config with
   | Some config -> config
   | None ->
-      match OpamStateConfig.load opam_root.opam_root_path with
-      | None ->
-          fail "Invalid OPAMROOT : %S"
+      match OpamFile.Config.read (OpamPath.config opam_root.opam_root_path) with
+      | exception exn ->
+          fail "Invalid OPAMROOT : %S.\n%s"
             (OpamFilename.Dir.to_string opam_root.opam_root_path)
-      | Some config ->
+            (Printexc.to_string exn)
+      | config ->
           opam_root.opam_root_config <- Some config;
           config
 
-let get_opam_state opam_root =
-  match opam_root.opam_root_state with
-  | Some state -> state
+let get_opam_root_aliases opam_root =
+  match opam_root.opam_root_aliases with
+  | Some aliases -> aliases
   | None ->
-      let root_dir = opam_root.opam_root_path in
-      let opam_root_config = get_opam_root_config opam_root in
-      let current_switch = OpamFile.Config.switch opam_root_config in
-      OpamStateConfig.update ~root_dir ~current_switch ();
-      let state =
-        OpamState.load_state "manager-root-state" current_switch in
-      opam_root.opam_root_state <- Some state;
-      state
+      match OpamFile.Aliases.read (OpamPath.aliases opam_root.opam_root_path) with
+      | exception exn ->
+          fail "Invalid OPAMROOT : %S.\n%s"
+            (OpamFilename.Dir.to_string opam_root.opam_root_path)
+            (Printexc.to_string exn)
+      | aliases ->
+          opam_root.opam_root_aliases <- Some aliases;
+          aliases
 
-let get_opam_env_state opam_root =
-  match opam_root.opam_root_state with
-  | Some state -> state
-  | None ->
-      (* FIXME: .opam/config is read twice in this branch! *)
-      let root_dir = opam_root.opam_root_path in
-      let opam_root_config = get_opam_root_config opam_root in
-      let current_switch = OpamFile.Config.switch opam_root_config in
-      OpamStateConfig.update ~root_dir ~current_switch ();
-      let state =
-        OpamState.load_env_state "manager-root-env-state" current_switch in
-      opam_root.opam_root_state <- Some state;
-      state
+
+let get_opam_default_switch opam_root =
+  (* Lookup for the default switch in OPAM config. *)
+  let config = get_opam_root_config opam_root in
+  OpamFile.Config.switch config
 
 let create_opam_root root_name opam_root_path =
   { root_name ;
@@ -62,8 +54,7 @@ let create_opam_root root_name opam_root_path =
       Opam_root
         { opam_root_path ;
           opam_root_config = None ;
-          opam_root_state = None ;
-          opam_root_env_state = None ;
+          opam_root_aliases = None ;
         }
   }
 
@@ -90,15 +81,16 @@ let default config =
     raise (Unknown_root_name (config.default_root_name, true))
 
 let opam_switches opam_root_name opam_root =
-  let state = get_opam_env_state opam_root in
+  let aliases = get_opam_root_aliases opam_root in
   OpamSwitch.Map.fold
     (fun switch compiler acc ->
        { opam_root_name;
          opam_root;
-         opam_switch = Some switch;
-         opam_env_state = Some { state with switch; compiler }
+         opam_switch = switch;
+         opam_switch_config = None;
+         opam_switch_comp = None;
        } :: acc)
-    state.aliases []
+    aliases []
 
 let switches root =
   match root.root_kind with
