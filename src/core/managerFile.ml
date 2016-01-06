@@ -18,30 +18,24 @@ open OpamTypes
 open OpamTypesBase
 open ManagerTypes
 
-let parse_filename = OpamFormat.parse_string @> OpamFilename.of_string
-let make_filename = OpamFilename.to_string @> OpamFormat.make_string
+module Pp = OpamFormat.Pp
+open Pp.Op
 
-let parse_dir = OpamFormat.parse_string @> OpamFilename.Dir.of_string
-let make_dir = OpamFilename.Dir.to_string @> OpamFormat.make_string
-
-let make_version = OpamVersion.to_string @> OpamFormat.make_string
-let parse_version = OpamFormat.parse_string @> OpamVersion.of_string
-
-let parse_root =
-  OpamFormat.(parse_pair parse_string parse_dir) @>
-  (fun (root_name, opam_root_path) ->
-     ManagerRoot.create_opam_root root_name opam_root_path)
-
-let make_root =
-  (fun { root_name; root_kind = Opam_root { opam_root_path } } ->
-     (root_name, opam_root_path)) @>
-  OpamFormat.(make_pair make_string make_dir)
-
-module Config_base = struct
+module ConfigSyntax = struct
 
   let internal = "manager/global_config"
 
   type t = ManagerTypes.config
+
+  let manager_version t = t.manager_version
+  let known_roots t = t.known_roots
+  let default_root_name t = t.default_root_name
+  let wrapper_binary t = t.wrapper_binary
+
+  let with_manager_version t manager_version = { t with manager_version }
+  let with_known_roots t known_roots = { t with known_roots }
+  let with_default_root_name t default_root_name = { t with default_root_name }
+  let with_wrapper_binary t wrapper_binary = { t with wrapper_binary }
 
   let s_manager_version = "opam-manager-version"
   let s_known_roots = "known-roots"
@@ -49,6 +43,7 @@ module Config_base = struct
   let s_wrapper_binary = "wrapper-binary"
 
   let empty = {
+    manager_version = ManagerVersion.current;
     default_root_name = "**unconfigured**";
     known_roots = [];
     wrapper_binary = OpamFilename.of_string "/unconfigured";
@@ -60,53 +55,58 @@ module Config_base = struct
     s_known_roots;
   ]
 
-  let of_syntax _ s =
-    let _permissive = OpamFile.Syntax.check s valid_fields in
-    let _manager_version =
-      OpamFormat.assoc s.file_contents s_manager_version
-        parse_version in
-    let default_root_name =
-      OpamFormat.assoc s.file_contents s_default_root_name
-        OpamFormat.parse_string in
-    let known_roots =
-      OpamFormat.assoc_list
-        s.file_contents s_known_roots
-        OpamFormat.(parse_list_list parse_root) in
-    let wrapper_binary =
-      OpamFormat.assoc s.file_contents s_wrapper_binary parse_filename in
-    { default_root_name;
-      known_roots;
-      wrapper_binary;
-    }
+  let pp_known_root :
+    (OpamTypes.value, ManagerTypes.root) Pp.t =
+    Pp.V.map_pair
+      Pp.V.string
+      (Pp.V.string -|
+       Pp.of_module "directory"
+         (module OpamFilename.Dir: Pp.STR with type t = OpamFilename.Dir.t)) -|
+    Pp.of_pair
+      "known_root"
+      ((fun (root_name, root_path) ->
+         ManagerRoot.create_opam_root root_name root_path),
+       (fun { root_name; root_kind = Opam_root { opam_root_path }} ->
+          (root_name, opam_root_path)))
+  let pp_known_roots :
+    (OpamTypes.value, ManagerTypes.root list) Pp.t =
+    Pp.V.map_list ~depth:2 pp_known_root
 
+  let fields =
+    [
+      "opam-manager-version", Pp.ppacc
+        with_manager_version manager_version
+        (Pp.V.string -|
+         Pp.of_module "opam-manager-version"
+           (module ManagerVersion: Pp.STR with type t = ManagerVersion.t)) ;
+      "default-root", Pp.ppacc
+        with_default_root_name default_root_name
+        Pp.V.string ;
+      "known-root", Pp.ppacc
+        with_known_roots known_roots
+        pp_known_roots ;
+      "wrapper-binary", Pp.ppacc
+        with_wrapper_binary wrapper_binary
+        (Pp.V.string -|
+         Pp.of_module "file"
+           (module OpamFilename: Pp.STR with type t = OpamFilename.t))
+    ]
 
-  let of_channel filename ic =
-    of_syntax filename (OpamFile.Syntax.of_channel filename ic)
+  let pp =
+    let name = internal in
+    Pp.I.map_file @@
+    Pp.I.check_fields ~name fields -|
+    Pp.I.fields ~name ~empty fields
 
-  let of_string filename str =
-    of_syntax filename (OpamFile.Syntax.of_string filename str)
-
-  let to_string filename t =
-    let variables =
-      [ ( s_manager_version, make_version ManagerVersion.current ) ;
-        ( s_default_root_name,
-          OpamFormat.make_string t.default_root_name );
-        ( s_known_roots,
-          OpamFormat.(make_list make_root)
-            t.known_roots);
-        ( s_wrapper_binary, make_filename t.wrapper_binary );
-      ] in
-    OpamFile.Syntax.to_string {
-      file_format   = OpamVersion.current;
-      file_name     = OpamFilename.to_string filename;
-      file_contents = List.map OpamFormat.make_variable variables;
-    }
+    (* -| *)
+    (* Pp.check ~name (fun t -> t.switch <> empty.switch) *)
+      (* ~errmsg:"missing switch" *)
 
 end
 
 module Config = struct
-  include Config_base
-  include OpamFile.Make(Config_base)
+  include ConfigSyntax
+  include OpamFile.SyntaxFile(ConfigSyntax)
 end
 
 (*

@@ -76,7 +76,7 @@ let exec ?switch config argv =
   let switch, src =
     match switch with
     | Some some ->
-        assert (ManagerSwitch.is_valid some);
+        assert (ManagerSwitch.is_valid some) ;
         some, None
     | None ->
         let switch, src = ManagerSwitch.current ?argv:opam_argv config in

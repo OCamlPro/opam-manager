@@ -14,7 +14,7 @@
 (**************************************************************************)
 
 open OpamTypes
-
+open ManagerTypes
 
 (** Commont opam-manager files' path. *)
 

@@ -40,7 +40,7 @@ type opam_switch = {
   opam_switch: OpamSwitch.t;
   (* Parsed file cache: *)
   mutable opam_switch_config: OpamFile.Dot_config.t option;
-  mutable opam_switch_comp: OpamFile.Comp.t option;
+  mutable opam_switch_env: OpamFile.Environment.t option;
 }
 
 type switch =
@@ -49,6 +49,7 @@ type switch =
 (** Opam-manager configuration file *)
 
 type config = {
+  manager_version: ManagerVersion.t;
   default_root_name: string;
   known_roots: root list;
   wrapper_binary: OpamFilename.t;

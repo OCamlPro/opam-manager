@@ -13,4 +13,25 @@
 (*                                                                        *)
 (**************************************************************************)
 
-let current = OpamVersion.of_string "0.1~dev"
+type t = string
+
+let to_string x = x
+
+let of_string x = x
+
+let to_json x = `String x
+
+let compare v w = OpamVersionCompare.compare v w
+
+module O = struct
+  type t = string
+  let to_string = to_string
+  let to_json = to_json
+  let compare = compare
+end
+
+module Set = OpamStd.Set.Make(O)
+
+module Map = OpamStd.Map.Make(O)
+
+let current = "0.1~dev"

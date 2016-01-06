@@ -1,0 +1,25 @@
+
+
+begin program "opam-manager-wrapper"
+
+  files = [
+    "opam_manager_wrapper.ml"
+  ]
+
+  requires = [
+    "opam-manager-core"
+  ]
+
+end
+
+begin program "opam-manager"
+
+    files = [
+      "opam_manager.ml"
+    ]
+
+    requires = [
+      "opam-manager-core"
+    ]
+
+end

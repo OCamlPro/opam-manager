@@ -28,6 +28,7 @@ let config, first_run =
           default_root_name
           (OpamStateConfig.opamroot ()) in
       let initial_config = {
+        manager_version = ManagerVersion.current;
         default_root_name;
         known_roots = [default_root];
         wrapper_binary = ManagerPath.default_wrapper_binary;

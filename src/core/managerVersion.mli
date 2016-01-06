@@ -13,4 +13,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
-val current: OpamVersion.t
+(** OPAM versions *)
+
+include OpamStd.ABSTRACT
+
+(** The current OPAM version *)
+val current: t

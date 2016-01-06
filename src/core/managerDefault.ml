@@ -63,8 +63,7 @@ let parse config file =
             |> OpamSwitch.of_string in
           Opam_switch { opam_root_name = root.root_name ; opam_root ;
                         opam_switch ;
-                        opam_switch_config = None ;
-                        opam_switch_comp = None; } in
+                        opam_switch_config = None ; opam_switch_env = None } in
     Switch switch
   with _ -> Absolute (resolve file)
 

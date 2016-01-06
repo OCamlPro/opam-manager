@@ -1,0 +1,6 @@
+S src/
+S src/core
+B _obuild/opam-manager-core/
+B _obuild/opam-manager/
+B _obuild/opam-manager-wrapper/
+PKG opam-lib

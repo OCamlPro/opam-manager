@@ -88,7 +88,7 @@ let opam_switches opam_root_name opam_root =
          opam_root;
          opam_switch = switch;
          opam_switch_config = None;
-         opam_switch_comp = None;
+         opam_switch_env = None;
        } :: acc)
     aliases []
 

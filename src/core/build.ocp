@@ -21,14 +21,10 @@ begin library "opam-manager-core"
 
 end
 
-begin program "opam-manager-wrapper"
-
-  files = [
-    "managerWrapperMain.ml"
-  ]
-
+begin program "opam-manager-core.top"
   requires = [
     "opam-manager-core"
   ]
-
+  has_asm = false
+  ocamlc = "ocamlmktop"
 end
