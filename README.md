@@ -12,12 +12,12 @@ When no corresponding binary is found in the current switch Opam-manager may exe
 ## Installation
 
 ```
-opam pin add opam-lib --dev-repo 
+opam pin add opam-lib https://github.com/ocaml/opam.git#next
 opam pin add opam-manager https://github.com/OCamlPro/opam-manager.git
 opam manager
 ```
 
-*Warning*: this will update your `.opam` to `opam-1.3~dev`! Subsequently, you have to use the current development version of opam. You may install `opam-1.3~dev` with `opam pin add opam-devel https://github.com/ocaml/opam.git`.
+*Warning*: this works only with `opam-2.0~dev`.
 
 Then edit your shell configuration and update your PATH. For instance,
 add the following line to your `.bashrc`
