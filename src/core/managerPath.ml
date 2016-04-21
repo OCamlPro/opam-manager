@@ -34,7 +34,7 @@ let defaults_dir =
 
 let config_file =
   let open OpamFilename.Op in
-  base_dir // "config"
+  OpamFile.make (base_dir // "config")
 
 let default_wrapper_binary =
   let open OpamFilename.Op in
@@ -49,9 +49,17 @@ let default_wrapper_binary =
 (* TODO remove unit in OPAM ?? *)
 let path_sep = OpamStd.Sys.path_sep ()
 
+let rec remove_trailing_slash dir =
+  let len = String.length dir in
+  if len > 1 && dir.[len-1] = '/' then
+    remove_trailing_slash (String.sub dir 0 (len-1))
+  else
+    dir
+
 let path =
   let path = try OpamStd.Env.get "PATH" with Not_found -> "" in
   let path = OpamStd.String.split path path_sep in
+  let path = List.map remove_trailing_slash path in
   List.map OpamFilename.Dir.of_string path
 
 (* PATH without opam_manager's own "bin" directory *)

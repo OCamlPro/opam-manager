@@ -118,5 +118,3 @@ let exec ?switch config argv =
                      (fun ppf s ->
                         Format.fprintf ppf "%s" (ManagerSwitch.name s)))
                   versions
-
-

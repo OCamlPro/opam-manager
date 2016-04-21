@@ -21,7 +21,6 @@ type opam_root = {
   opam_root_path: OpamPath.t;
   (* Parsed file cache: *)
   mutable opam_root_config: OpamFile.Config.t option;
-  mutable opam_root_aliases: OpamFile.Aliases.t option;
 }
 
 type root_kind =

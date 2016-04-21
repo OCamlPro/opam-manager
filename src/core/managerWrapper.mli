@@ -22,4 +22,6 @@ val update_switch: config -> switch -> unit
 
 (** Create or remove wrappers to match the binaries found in all known
     switches. *)
-val update: ?verbose:bool -> config -> unit
+val update:
+  ?check_symlink:bool -> ?verbose:bool ->
+  config -> unit

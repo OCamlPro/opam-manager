@@ -81,15 +81,13 @@ let update_switch config switch =
     (fun name -> create config (OpamFilename.Base.of_string name))
     missings
 
-let update ?(verbose = false) config =
+let update ?(check_symlink = false) ?(verbose = false) config =
   let binaries = get_binaries (ManagerSwitch.all config) in
-  let wrapper = get_wrappers () in
   let defaults = ManagerDefault.list_absolute config in
-  let missings = OpamStd.String.Set.diff binaries wrapper in
-  let dangling =
-    OpamStd.String.Set.diff
-      wrapper
-      (OpamStd.String.Set.union defaults binaries) in
+  let required = OpamStd.String.Set.union defaults binaries in
+  let wrappers = get_wrappers () in
+  let missings = OpamStd.String.Set.diff required wrappers in
+  let dangling = OpamStd.String.Set.diff wrappers required in
   if verbose && OpamStd.String.Set.empty <> dangling then
     info "Removing %d wrapper(s)" (OpamStd.String.Set.cardinal dangling);
   OpamStd.String.Set.iter
@@ -102,6 +100,4 @@ let update ?(verbose = false) config =
       info "Creating %d generic wrapper(s)" (OpamStd.String.Set.cardinal missings);
   OpamStd.String.Set.iter
     (fun name -> create config (OpamFilename.Base.of_string name))
-    missings
-
-
+    (if check_symlink then required else missings)

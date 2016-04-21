@@ -32,10 +32,10 @@ module ConfigSyntax = struct
   let default_root_name t = t.default_root_name
   let wrapper_binary t = t.wrapper_binary
 
-  let with_manager_version t manager_version = { t with manager_version }
-  let with_known_roots t known_roots = { t with known_roots }
-  let with_default_root_name t default_root_name = { t with default_root_name }
-  let with_wrapper_binary t wrapper_binary = { t with wrapper_binary }
+  let with_manager_version manager_version t = { t with manager_version }
+  let with_known_roots known_roots t = { t with known_roots }
+  let with_default_root_name default_root_name t = { t with default_root_name }
+  let with_wrapper_binary wrapper_binary t = { t with wrapper_binary }
 
   let s_manager_version = "opam-manager-version"
   let s_known_roots = "known-roots"
@@ -78,7 +78,7 @@ module ConfigSyntax = struct
         with_manager_version manager_version
         (Pp.V.string -|
          Pp.of_module "opam-manager-version"
-           (module ManagerVersion: Pp.STR with type t = ManagerVersion.t)) ;
+           (module ManagerVersion)) ;
       "default-root", Pp.ppacc
         with_default_root_name default_root_name
         Pp.V.string ;
@@ -94,9 +94,11 @@ module ConfigSyntax = struct
 
   let pp =
     let name = internal in
-    Pp.I.map_file @@
-    Pp.I.check_fields ~name fields -|
-    Pp.I.fields ~name ~empty fields
+    ( Pp.I.map_file
+      @@ Pp.I.check_fields ~name fields
+         -| Pp.I.fields ~name ~empty fields )
+    -| Pp.pp (fun ~pos:_ (a, b) -> (OpamFile.make a, b))
+             (fun (a, b) -> (OpamFile.filename a, b))
 
     (* -| *)
     (* Pp.check ~name (fun t -> t.switch <> empty.switch) *)

@@ -22,7 +22,7 @@ val base_dir: dirname
 val bin_dir: dirname
 val defaults_dir: dirname
 
-val config_file: filename
+val config_file: config OpamFile.typed_file
 val default_wrapper_binary: filename
 
 

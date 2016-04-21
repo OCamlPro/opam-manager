@@ -15,16 +15,16 @@
 
 let load () =
   let file = ManagerPath.config_file in
-  if OpamFilename.exists file then
-    OpamFilename.with_flock ~read:true
-      (OpamFilename.add_extension file "lock")
-      (fun f -> Some (ManagerFile.Config.read f)) file
+  if OpamFile.exists file then
+    OpamFilename.with_flock `Lock_read
+      (OpamFile.filename file)
+      (fun () -> Some (ManagerFile.Config.read file))
   else
     None
 
 let write conf =
   let file = ManagerPath.config_file in
-  OpamFilename.mkdir (OpamFilename.dirname file);
-  OpamFilename.with_flock ~read:false
-    (OpamFilename.add_extension file "lock")
-    (ManagerFile.Config.write file) conf
+  OpamFilename.mkdir (OpamFilename.dirname (OpamFile.filename file));
+  OpamFilename.with_flock `Lock_write
+    (OpamFile.filename file)
+    (fun () -> ManagerFile.Config.write file conf)

@@ -45,9 +45,7 @@ let config, first_run =
 let check_external_wrapper name =
   let base = OpamFilename.Base.of_string name in
   match ManagerDefault.find config base with
-  | Some _ ->
-      (* TODO ?? check link validity ?? *)
-      ()
+  | Some _ -> ()
   | None ->
       try
         info "Creating wrapper for the external binary %S." name;
@@ -65,4 +63,5 @@ let () =
 (** Create or remove wrappers to match the binaries found in all known
     switches. *)
 
-let () = ManagerWrapper.update ~verbose:true config
+let () =
+  ManagerWrapper.update ~check_symlink:true ~verbose:true config

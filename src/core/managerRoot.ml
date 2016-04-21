@@ -29,20 +29,6 @@ let get_opam_root_config opam_root =
           opam_root.opam_root_config <- Some config;
           config
 
-let get_opam_root_aliases opam_root =
-  match opam_root.opam_root_aliases with
-  | Some aliases -> aliases
-  | None ->
-      match OpamFile.Aliases.read (OpamPath.aliases opam_root.opam_root_path) with
-      | exception exn ->
-          fail "Invalid OPAMROOT : %S.\n%s"
-            (OpamFilename.Dir.to_string opam_root.opam_root_path)
-            (Printexc.to_string exn)
-      | aliases ->
-          opam_root.opam_root_aliases <- Some aliases;
-          aliases
-
-
 let get_opam_default_switch opam_root =
   (* Lookup for the default switch in OPAM config. *)
   let config = get_opam_root_config opam_root in
@@ -54,7 +40,6 @@ let create_opam_root root_name opam_root_path =
       Opam_root
         { opam_root_path ;
           opam_root_config = None ;
-          opam_root_aliases = None ;
         }
   }
 
@@ -81,16 +66,16 @@ let default config =
     raise (Unknown_root_name (config.default_root_name, true))
 
 let opam_switches opam_root_name opam_root =
-  let aliases = get_opam_root_aliases opam_root in
-  OpamSwitch.Map.fold
-    (fun switch compiler acc ->
+  let config = get_opam_root_config opam_root in
+  List.map
+    (fun switch ->
        { opam_root_name;
          opam_root;
          opam_switch = switch;
          opam_switch_config = None;
          opam_switch_env = None;
-       } :: acc)
-    aliases []
+       })
+    (OpamFile.Config.installed_switches config)
 
 let switches root =
   match root.root_kind with
