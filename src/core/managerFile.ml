@@ -97,8 +97,6 @@ module ConfigSyntax = struct
     ( Pp.I.map_file
       @@ Pp.I.check_fields ~name fields
          -| Pp.I.fields ~name ~empty fields )
-    -| Pp.pp (fun ~pos:_ (a, b) -> (OpamFile.make a, b))
-             (fun (a, b) -> (OpamFile.filename a, b))
 
     (* -| *)
     (* Pp.check ~name (fun t -> t.switch <> empty.switch) *)

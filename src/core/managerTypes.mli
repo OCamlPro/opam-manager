@@ -38,7 +38,7 @@ type opam_switch = {
   opam_root: opam_root;
   opam_switch: OpamSwitch.t;
   (* Parsed file cache: *)
-  mutable opam_switch_config: OpamFile.Dot_config.t option;
+  mutable opam_switch_config: OpamFile.Switch_config.t option;
   mutable opam_switch_env: OpamFile.Environment.t option;
 }
 

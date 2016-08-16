@@ -16,7 +16,7 @@ begin library "opam-manager-core"
   ]
 
   requires = [
-    "opam-lib.state"
+    "opam-state"
   ]
 
 end

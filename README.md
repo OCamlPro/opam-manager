@@ -12,7 +12,9 @@ When no corresponding binary is found in the current switch Opam-manager may exe
 ## Installation
 
 ```
-opam pin add opam-lib https://github.com/ocaml/opam.git#next
+SRC="https://github.com/ocaml/opam.git#master"
+PACKAGES="opam-client opam-core opam-format opam-repository opam-solver opam-state"
+for pkg in  ${PACKAGES}; do opam pin add --no-action $pkg "${SRC}"; done
 opam pin add opam-manager https://github.com/OCamlPro/opam-manager.git
 opam manager
 ```

@@ -1,5 +1,4 @@
 
-
 begin program "opam-manager-wrapper"
 
   files = [

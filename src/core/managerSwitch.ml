@@ -235,22 +235,22 @@ let get_opam_switch_config opam_switch =
   | Some config -> config
   | None ->
       let f =
-        OpamPath.Switch.global_config
+        OpamPath.Switch.switch_config
           opam_switch.opam_root.opam_root_path opam_switch.opam_switch in
       let config =
-        if OpamFile.exists f then OpamFile.Dot_config.read f
+        if OpamFile.exists f then OpamFile.Switch_config.read f
         else
           (OpamConsole.error "No global config file found for switch %s. \
                               Switch broken ?"
              (OpamSwitch.to_string opam_switch.opam_switch);
-           OpamFile.Dot_config.empty) in
+           OpamFile.Switch_config.empty) in
       opam_switch.opam_switch_config <- Some config;
       config
 
 let get_opam_compiler opam_switch =
   let config = get_opam_switch_config opam_switch in
   match
-    OpamFile.Dot_config.variable config (OpamVariable.of_string "compiler")
+    OpamFile.Switch_config.variable config (OpamVariable.of_string "compiler")
   with
   | None | Some (OpamVariable.B _) -> None
   | Some (OpamVariable.S p) -> Some p
