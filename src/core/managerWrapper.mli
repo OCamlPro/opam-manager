@@ -15,13 +15,13 @@
 
 open ManagerTypes
 
-val create: config -> OpamFilename.Base.t -> unit
+val create: OpamFilename.Base.t -> unit
 
 (** Create wrappers for all the binaries found in 'switch'. *)
-val update_switch: config -> switch -> unit
+val update_switch: opam_switch -> unit
 
 (** Create or remove wrappers to match the binaries found in all known
     switches. *)
 val update:
   ?check_symlink:bool -> ?verbose:bool ->
-  config -> unit
+  unit -> unit

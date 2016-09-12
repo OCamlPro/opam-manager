@@ -17,12 +17,12 @@ open ManagerTypes
 
 type defaults =
   | Absolute of OpamFilename.t
-  | Switch of switch
+  | Switch of opam_switch
 
-val find: config -> OpamFilename.Base.t -> OpamFilename.t option
+val find: OpamFilename.Base.t -> OpamFilename.t option
 
 val create: OpamFilename.Base.t -> defaults -> unit
 
 val create_absolute: OpamFilename.Base.t -> unit
 
-val list_absolute: config -> OpamStd.String.Set.t
+val list_absolute: unit -> OpamStd.String.Set.t

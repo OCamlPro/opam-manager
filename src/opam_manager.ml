@@ -16,52 +16,47 @@
 open ManagerTypes
 open ManagerMisc
 
-(** Read the config file or create the initial one. *)
+(** First-run initialization. *)
 
-let config, first_run =
-  match ManagerConfig.load () with
-  | None ->
-      info "Initialising opam-manager!";
-      let default_root_name = "default" in
-      let default_root =
-        ManagerRoot.create_opam_root
-          default_root_name
-          (OpamStateConfig.opamroot ()) in
-      let initial_config = {
-        manager_version = ManagerVersion.current;
-        default_root_name;
-        known_roots = [default_root];
-        wrapper_binary = ManagerPath.default_wrapper_binary;
-      } in
-      OpamFilename.mkdir ManagerPath.defaults_dir;
-      OpamFilename.mkdir ManagerPath.bin_dir;
-      ManagerConfig.write initial_config;
-      (initial_config, true)
-  | Some config -> (config, false)
-
-
-(** Create wrapper and configure default binary for 'man' and 'opam'. *)
-
-let check_external_wrapper name =
-  let base = OpamFilename.Base.of_string name in
-  match ManagerDefault.find config base with
-  | Some _ -> ()
-  | None ->
-      try
-        info "Creating wrapper for the external binary %S." name;
-        ManagerDefault.create_absolute base;
-        ManagerWrapper.create config base
-      with Not_found -> warn "Can't locate %S in PATH." name
+let first_run = not (OpamFilename.exists_dir ManagerPath.base_dir)
 
 let () =
   if first_run then begin
-    check_external_wrapper "opam";
-    check_external_wrapper "man"
+    try
+      info "Initialising opam-manager !" ;
+      let check_external_wrapper name =
+        let base = OpamFilename.Base.of_string name in
+        try
+          info "Creating wrapper for the external binary %S." name ;
+          ManagerDefault.create_absolute base ;
+          ManagerWrapper.create base
+        with Not_found -> warn "Can't locate %S in PATH." name in
+      OpamFilename.mkdir ManagerPath.defaults_dir ;
+      OpamFilename.mkdir ManagerPath.bin_dir ;
+      check_external_wrapper "opam" ;
+      check_external_wrapper "man" ;
+      check_external_wrapper "which" ;
+      let manager = OpamFilename.Base.of_string "opam-manager" in
+      ManagerDefault.create manager
+        (ManagerDefault.Absolute (OpamFilename.of_string Sys.executable_name)) ;
+      ManagerWrapper.create manager ;
+    with e ->
+      OpamFilename.rmdir_cleanup ManagerPath.base_dir ;
+      raise e
   end
 
+let () =
+  OpamFilename.copy
+    ~src:ManagerPath.default_wrapper_binary
+    ~dst:ManagerPath.wrapper_binary
 
 (** Create or remove wrappers to match the binaries found in all known
     switches. *)
 
 let () =
-  ManagerWrapper.update ~check_symlink:true ~verbose:true config
+  ManagerWrapper.update ~check_symlink:true ~verbose:true ()
+
+let () =
+  if not (ManagerPath.is_path_uptodate ()) then
+    info "You may now add \"%s\" to your PATH."
+      (OpamFilename.Dir.to_string ManagerPath.bin_dir)

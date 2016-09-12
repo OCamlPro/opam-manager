@@ -18,18 +18,21 @@ open ManagerTypes
 
 (** Commont opam-manager files' path. *)
 
+val opam_root: dirname
+
 val base_dir: dirname
 val bin_dir: dirname
 val defaults_dir: dirname
 
-val config_file: config OpamFile.typed_file
-val default_wrapper_binary: filename
-
+val default_wrapper_binary: OpamFilename.t
+val wrapper_binary: OpamFilename.t
 
 (** PATH related *)
 
 val find_in_path: OpamFilename.Base.t -> dirname option
 
+val is_path_uptodate: unit -> bool
+
 (* The PATH without 'bin_dir' *)
-val clean_path: OpamFilename.Dir.t list
+val clean_path: dirname list
 val clean_path_str: string

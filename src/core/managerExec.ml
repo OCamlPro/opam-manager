@@ -19,7 +19,7 @@ open ManagerMisc
 let find_in_switch switch name =
   let open OpamStd.Option.Op in
   let (//) = OpamFilename.create in
-  if ManagerSwitch.is_opam_system_switch switch then
+  if ManagerSwitch.is_system_switch switch then
     ManagerPath.find_in_path
       (OpamFilename.Base.of_string "ocamlc") >>= fun dirname ->
     let filename = dirname // name in
@@ -28,81 +28,60 @@ let find_in_switch switch name =
     let filename = ManagerSwitch.bin_dir switch // name in
     if OpamFilename.exists filename then Some filename else None
 
-let find_in_all_switch config name =
+let find_in_all_switch name =
   List.filter
     (fun switch -> find_in_switch switch name <> None)
-    (ManagerSwitch.all config)
+    (Lazy.force ManagerSwitch.all)
 
 (** *)
 
-let do_exec_opam config switch argv =
-  match ManagerPath.find_in_path (OpamFilename.Base.of_string "opam") with
-  | None -> fail ~rc:127 "\"opam\" not in PATH"
-  | Some dirname ->
-      let open OpamFilename.Op in
-      let real_opam = dirname // "opam" in
-      argv.(0) <- OpamFilename.to_string real_opam;
-      Unix.putenv "PATH" ManagerPath.clean_path_str;
-      ManagerSwitch.setup_minimal_env switch;
-      try
-        let cmd = argv.(0) in
-        let args = List.tl (Array.to_list argv) in
-        let rc =
-          OpamProcess.run @@
-          OpamProcess.command ~allow_stdin:true cmd args in
-        if rc.OpamProcess.r_code = 0 then
-          (* TODO: uniquement si argv contient une commande 'install'
-                   ou un équivalent ?? *)
-          ManagerWrapper.update_switch config switch;
-        exit rc.OpamProcess.r_code
-      with e ->
-        fail ~rc:2
-          "Exception while trying to execute %S:\n%s"
-          argv.(0) (Printexc.to_string e)
-
-let do_exec config switch argv =
-  ManagerSwitch.setup_env switch;
+let do_exec switch argv =
+  ManagerSwitch.setup_env switch ;
   try Unix.execv argv.(0) argv
   with e ->
     fail ~rc:2
       "exception while executing %s: %S"
       argv.(0) (Printexc.to_string e)
 
-let exec ?switch config argv =
+let do_exec_opam switch argv =
+  let do_run cmd =
+    match ManagerDefault.find (OpamFilename.Base.of_string cmd) with
+    | None ->
+        fail ~rc:127 "\"%s\" not in \"%s\""
+          cmd (OpamFilename.Dir.to_string ManagerPath.defaults_dir)
+    | Some real_cmd ->
+        let real_cmd = OpamFilename.to_string real_cmd in
+        ManagerSwitch.setup_env switch ;
+        try
+          let args = List.tl (Array.to_list argv) in
+          OpamProcess.run @@
+          OpamProcess.command ~allow_stdin:true real_cmd args
+        with e ->
+          fail ~rc:2
+            "Exception while trying to execute %S:\n%s"
+            real_cmd (Printexc.to_string e) in
+    let rc = do_run "opam" in
+    if rc.OpamProcess.r_code = 0 then
+      ManagerWrapper.update_switch switch ;
+    exit rc.OpamProcess.r_code
+
+let exec ?(switch = Lazy.force ManagerSwitch.current) argv =
   let basename = OpamFilename.basename (OpamFilename.of_string argv.(0)) in
   let is_opam = basename = OpamFilename.Base.of_string "opam" in
-  let is_opam_init = is_opam && Array.length argv >= 2 && argv.(1) = "init" in
-  let opam_argv = if is_opam then Some argv else None in
-  let switch, src =
-    match switch with
-    | Some some ->
-        assert (ManagerSwitch.is_valid some) ;
-        some, None
-    | None ->
-        let switch, src = ManagerSwitch.current ?argv:opam_argv config in
-        if not (is_opam_init || ManagerSwitch.is_valid switch) then begin
-          match switch with
-          | Opam_switch opam_switch ->
-              ManagerSwitch.display_src src;
-              OpamSwitch.not_installed
-                (ManagerSwitch.opam_switch_name opam_switch)
-        end;
-        switch, Some src in
   if is_opam then
-    do_exec_opam config switch argv
+    do_exec_opam switch argv
   else
     match find_in_switch switch basename with
     | Some filename ->
-        argv.(0) <- OpamFilename.to_string filename;
-        do_exec config switch argv
+        argv.(0) <- OpamFilename.to_string filename ;
+        do_exec switch argv
     | None ->
-        match ManagerDefault.find config basename with
+        match ManagerDefault.find basename with
         | Some filename ->
-            argv.(0) <- OpamFilename.to_string filename;
-            do_exec config switch argv
+            argv.(0) <- OpamFilename.to_string filename ;
+            do_exec switch argv
         | None ->
-            OpamStd.Option.iter ManagerSwitch.display_src src;
-            match find_in_all_switch config basename with
+            match find_in_all_switch basename with
             | [] ->
                 fail ~rc:2
                   "the command %S can not be found in any OPAM switch."
@@ -116,5 +95,5 @@ let exec ?switch config argv =
                   (Format.pp_print_list
                      ~pp_sep:Format.pp_print_space
                      (fun ppf s ->
-                        Format.fprintf ppf "%s" (ManagerSwitch.name s)))
+                        Format.fprintf ppf "%s" (OpamSwitch.to_string s.name)))
                   versions

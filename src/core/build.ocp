@@ -4,15 +4,12 @@ begin library "opam-manager-core"
   files = [
     "managerVersion.ml"
     "managerMisc.ml"
-    "managerPath.ml"
     "managerTypes.mli"
-    "managerRoot.ml"
-    "managerFile.ml"
+    "managerPath.ml"
     "managerSwitch.ml"
     "managerDefault.ml"
     "managerWrapper.ml"
     "managerExec.ml"
-    "managerConfig.ml"
   ]
 
   requires = [

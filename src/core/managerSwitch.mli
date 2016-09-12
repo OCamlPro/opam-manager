@@ -16,33 +16,16 @@
 open OpamTypes
 open ManagerTypes
 
-val current:
-  ?argv:string array -> config ->
-  switch * [ `File of string | `Env of string | `Argv | `Default ]
-val all: config -> switch list
+val current: opam_switch Lazy.t
+val all: opam_switch list Lazy.t
 
-val find_switch: config -> ?default:ManagerTypes.root -> string -> switch
-
-val display_src:
-  [ `File of string | `Env of string | `Argv | `Default ] -> unit
+val of_bin_dir: dirname -> opam_switch
 
 (** Accessors *)
 
-val is_valid: switch -> bool
-
-val name: switch -> string
-val is_opam_system_switch: switch -> bool
-val bin_dir: switch -> dirname
-val root: switch -> root
-
-val opam_switch_name: opam_switch -> OpamSwitch.t
+val is_system_switch: opam_switch -> bool
+val bin_dir: opam_switch -> dirname
 
 (** Environment *)
 
-val setup_minimal_env: switch -> unit
-val setup_env: switch -> unit
-
-(** Helpers *)
-
-val equal: switch -> switch -> bool
-val compare: switch -> switch -> int
+val setup_env: opam_switch -> unit

@@ -56,10 +56,10 @@ let get_binaries_info switches =
 
 (** Wrapper creation/removal *)
 
-let create config basename =
+let create basename =
   let wrapper = OpamFilename.create ManagerPath.bin_dir basename in
   safe_remove wrapper;
-  safe_link ~src:config.wrapper_binary ~dst:wrapper
+  safe_link ~src:ManagerPath.wrapper_binary ~dst:wrapper
 
 let remove basename =
   safe_remove @@ OpamFilename.create ManagerPath.bin_dir basename
@@ -73,17 +73,17 @@ let get_wrappers () =
     (OpamFilename.files ManagerPath.bin_dir)
     OpamStd.String.Set.empty
 
-let update_switch config switch =
+let update_switch switch =
   let binaries = get_binaries [switch] in
   let wrappers = get_wrappers () in
   let missings = OpamStd.String.Set.diff binaries wrappers in
   OpamStd.String.Set.iter
-    (fun name -> create config (OpamFilename.Base.of_string name))
+    (fun name -> create (OpamFilename.Base.of_string name))
     missings
 
-let update ?(check_symlink = false) ?(verbose = false) config =
-  let binaries = get_binaries (ManagerSwitch.all config) in
-  let defaults = ManagerDefault.list_absolute config in
+let update ?(check_symlink = false) ?(verbose = false) () =
+  let binaries = get_binaries (Lazy.force ManagerSwitch.all) in
+  let defaults = ManagerDefault.list_absolute () in
   let required = OpamStd.String.Set.union defaults binaries in
   let wrappers = get_wrappers () in
   let missings = OpamStd.String.Set.diff required wrappers in
@@ -99,5 +99,5 @@ let update ?(check_symlink = false) ?(verbose = false) config =
     else
       info "Creating %d generic wrapper(s)" (OpamStd.String.Set.cardinal missings);
   OpamStd.String.Set.iter
-    (fun name -> create config (OpamFilename.Base.of_string name))
+    (fun name -> create (OpamFilename.Base.of_string name))
     (if check_symlink then required else missings)

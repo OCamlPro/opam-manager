@@ -18,42 +18,16 @@ open OpamTypes
 (** Root *)
 
 type opam_root = {
-  opam_root_path: OpamPath.t;
+  path: OpamPath.t ;
   (* Parsed file cache: *)
-  mutable opam_root_config: OpamFile.Config.t option;
-}
-
-type root_kind =
-  | Opam_root of opam_root
-
-type root = {
-  root_name: string;
-  root_kind: root_kind;
+  config: OpamFile.Config.t Lazy.t ;
 }
 
 (** Switch *)
 
 type opam_switch = {
-  opam_root_name: string;
-  opam_root: opam_root;
-  opam_switch: OpamSwitch.t;
+  name: OpamSwitch.t ;
   (* Parsed file cache: *)
-  mutable opam_switch_config: OpamFile.Switch_config.t option;
-  mutable opam_switch_env: OpamFile.Environment.t option;
-}
-
-type switch =
-  | Opam_switch of opam_switch
-
-(** Opam-manager configuration file *)
-
-type config = {
-  manager_version: ManagerVersion.t;
-  default_root_name: string;
-  known_roots: root list;
-  wrapper_binary: OpamFilename.t;
-}
-
-type root_config = {
-  manager_dir: dirname;
+  switch_config: OpamFile.Switch_config.t Lazy.t ;
+  switch_env: OpamFile.Environment.t Lazy.t ;
 }

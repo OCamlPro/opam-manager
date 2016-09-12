@@ -20,7 +20,7 @@ open ManagerTypes
 
 type defaults =
   | Absolute of OpamFilename.t
-  | Switch of switch
+  | Switch of opam_switch
 
 let safe_remove file =
   if OpamFilename.exists file then
@@ -47,38 +47,25 @@ let create basename binary =
 let remove basename =
   safe_remove @@ OpamFilename.create ManagerPath.defaults_dir basename
 
-let parse config file =
+let parse file =
   try
     let link = OpamFilename.readlink file in
     let bin_dir = OpamFilename.dirname link in
-    let switch_dir = OpamFilename.dirname_dir bin_dir in
-    let root_dir = OpamFilename.dirname_dir switch_dir in
-    let root = ManagerRoot.from_path ~anonymous:false config root_dir in
-    let switch =
-      match root.root_kind with
-      | Opam_root opam_root ->
-          let opam_switch =
-            OpamFilename.basename_dir switch_dir
-            |> OpamFilename.Base.to_string
-            |> OpamSwitch.of_string in
-          Opam_switch { opam_root_name = root.root_name ; opam_root ;
-                        opam_switch ;
-                        opam_switch_config = None ; opam_switch_env = None } in
-    Switch switch
+    Switch (ManagerSwitch.of_bin_dir bin_dir)
   with _ -> Absolute (resolve file)
 
 (* List all the 'default' binaries. *)
-let all config =
+let all () =
   List.fold_right
     (fun file acc ->
        let name = OpamFilename.Base.to_string (OpamFilename.basename file) in
-       OpamStd.String.Map.add name (parse config file) acc)
+       OpamStd.String.Map.add name (parse file) acc)
     (OpamFilename.files ManagerPath.defaults_dir)
     OpamStd.String.Map.empty
 
-let check config filename =
+let check filename =
   let resolved = resolve filename in
-  let kind = parse config filename in
+  let kind = parse filename in
   if not (OpamFilename.exists resolved) then
     match kind with
     | Absolute _ ->
@@ -87,7 +74,7 @@ let check config filename =
           (OpamFilename.(Base.to_string @@ basename filename))
     | Switch s ->
         fail "Dangling promoted binary from %s : %s."
-          (ManagerSwitch.name s)
+          (OpamSwitch.to_string s.name)
           (OpamFilename.(Base.to_string @@ basename filename))
   else if not (OpamFilename.is_exec resolved) then
     match kind with
@@ -97,13 +84,13 @@ let check config filename =
     | Switch s ->
         fail "Promoted binary is not executable %S from %s."
           (OpamFilename.(Base.to_string @@ basename filename))
-          (ManagerSwitch.name s)
+          (OpamSwitch.to_string s.name)
 
-let find config name =
+let find name =
   let filename = OpamFilename.create ManagerPath.defaults_dir name in
   if OpamFilename.exists filename &&
      OpamFilename.is_symlink filename then begin
-    check config filename;
+    check filename;
     Some filename
   end else
     None
@@ -124,7 +111,7 @@ let create_absolute name =
 let list_absolute config =
   List.fold_left
     (fun acc file ->
-       match parse config file with
+       match parse file with
        | Absolute _ ->
            let base = OpamFilename.basename file in
            let name = OpamFilename.Base.to_string base in

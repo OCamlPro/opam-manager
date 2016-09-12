@@ -16,5 +16,5 @@
 open OpamTypes
 open ManagerTypes
 
-val exec: ?switch:switch -> ManagerTypes.config -> string array -> unit
+val exec: ?switch:opam_switch -> string array -> unit
 
